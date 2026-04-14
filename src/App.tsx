@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform, AnimatePresence } from "motion/react";
-import { Camera, Zap, Instagram, Twitter, Mail, Menu, X, ChevronRight, ArrowUpRight, Play, Share2, Twitter as TwitterIcon, Mail as MailIcon, Instagram as InstagramIcon, ChevronDown, Plus, Trash2, LogOut, Lock, Image as ImageIcon, Star, Quote, Settings } from "lucide-react";
+import { Camera, Zap, Instagram, Twitter, Mail, Menu, X, ChevronRight, ArrowUpRight, Share2, Twitter as TwitterIcon, Mail as MailIcon, Instagram as InstagramIcon, ChevronDown, Plus, Trash2, LogOut, Lock, Image as ImageIcon, Star, Quote, Settings } from "lucide-react";
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,9 +10,31 @@ import { collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, Timesta
 
 const categories = ["Landscape", "Street", "Portrait", "Action"];
 
-const getYoutubeEmbedUrl = (url: string) => {
+const getEmbedUrl = (url: string) => {
   if (!url) return "";
-  // If it's already an embed URL, just return it
+  
+  // Return early if already an embed URL
+  if (url.includes('/embed/')) return url;
+
+  // Handle Instagram Reels/Posts
+  if (url.includes('instagram.com/reel/') || url.includes('instagram.com/p/')) {
+    try {
+      let baseUrl = url.split(/[?#]/)[0];
+      if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+      
+      // Convert /reel/ to /p/ for better compatibility
+      if (baseUrl.includes('/reel/')) {
+        baseUrl = baseUrl.replace('/reel/', '/p/');
+      }
+      
+      return `${baseUrl}/embed/`;
+    } catch (e) {
+      console.error("Error parsing Instagram URL:", e);
+      return url;
+    }
+  }
+
+  // Handle YouTube
   if (url.includes('youtube.com/embed/')) return url;
   
   let videoId = "";
@@ -60,8 +82,10 @@ export default function App() {
   const [photos, setPhotos] = useState<any[]>([]);
   const [newPhoto, setNewPhoto] = useState({ src: "", title: "", category: "Landscape", size: "square" });
   const [isUploading, setIsUploading] = useState(false);
-  const [reelUrl, setReelUrl] = useState("https://www.youtube.com/embed/dQw4w9WgXcQ"); // Default
+  const [reelUrl, setReelUrl] = useState("https://www.instagram.com/reel/C57lS1_P-X_/"); // Default Instagram Reel Sample
   const [newReelUrl, setNewReelUrl] = useState("");
+  
+  const [testimonials, setTestimonials] = useState<any[]>([]);
   
   // Dynamic Page Content
   const [aboutData, setAboutData] = useState({
@@ -129,10 +153,31 @@ export default function App() {
         setNewAboutData(prev => ({ ...prev, ...data }));
       }
     });
+    
+    const unsubTestimonials = onSnapshot(query(collection(db, "testimonials"), orderBy("createdAt", "desc")), (snapshot) => {
+      const testimonialData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setTestimonials(testimonialData);
+      
+      // Seed initial testimonials if empty
+      if (testimonialData.length === 0 && isAdmin) {
+        const seedTestimonials = [
+          { author: "Rahul S.", content: "Storm Flash captured our wedding with a level of artistry we didn't think was possible. Truly world-class.", role: "Wedding Client" },
+          { author: "Ananya K.", content: "The portrait session was incredible. Jaswanth knows exactly how to work with light to create a mood.", role: "Fashion Model" },
+          { author: "Vikram R.", content: "Raw, energetic and powerful. Exactly what I wanted for my street photography collection.", role: "Artist" }
+        ];
+        seedTestimonials.forEach(t => {
+          addDoc(collection(db, "testimonials"), { ...t, createdAt: Timestamp.now() });
+        });
+      }
+    });
 
     return () => {
       unsubReel();
       unsubAbout();
+      unsubTestimonials();
     };
   }, []);
 
@@ -224,7 +269,7 @@ export default function App() {
   const handleUpdateReel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newReelUrl) return;
-    const sanitizedUrl = getYoutubeEmbedUrl(newReelUrl);
+    const sanitizedUrl = getEmbedUrl(newReelUrl);
     try {
       await setDoc(doc(db, "settings", "reel"), { reelUrl: sanitizedUrl });
       setReelUrl(sanitizedUrl);
@@ -244,6 +289,7 @@ export default function App() {
       console.error("Error updating profile:", error);
     }
   };
+
 
 
   const seedGallery = async () => {
@@ -428,8 +474,18 @@ export default function App() {
               >
                 <X className="w-8 h-8" />
               </Button>
+              <div className="absolute top-4 left-4 z-10 flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.open(reelUrl, '_blank')}
+                  className="rounded-full bg-black/50 backdrop-blur-md border-white/10 hover:bg-brand hover:text-black gap-2 text-xs"
+                >
+                  <InstagramIcon className="w-4 h-4" /> View on Instagram
+                </Button>
+              </div>
               <iframe 
-                src={getYoutubeEmbedUrl(reelUrl)}
+                src={getEmbedUrl(reelUrl)}
                 className="w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -698,7 +754,7 @@ export default function App() {
                     className="flex items-center gap-4 group cursor-pointer"
                   >
                     <div className="w-12 h-12 rounded-full glass flex items-center justify-center group-hover:bg-brand group-hover:text-black transition-all duration-500">
-                      <Play className="w-5 h-5 fill-current" />
+                      <Instagram className="w-5 h-5" />
                     </div>
                     <span className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/60 group-hover:text-brand transition-colors">
                       Watch Reel
@@ -968,51 +1024,59 @@ export default function App() {
         </section>
 
         {/* Cinematic Testimonials */}
-        <section className="py-40 border-b border-white/5 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-6 mb-24">
-            <h2 className="text-4xl lg:text-6xl font-display font-bold tracking-tighter text-center">CLIENT <span className="font-serif italic font-light text-white/30">LOVE</span></h2>
-          </div>
-          
-          <div className="flex flex-col gap-12">
-            {/* Infinite Marquee 1 */}
-            <div className="flex gap-8 whitespace-nowrap animate-marquee">
-              {[1, 2, 3, 4, 5].map((_, i) => (
-                <div key={i} className="inline-flex flex-col gap-6 glass p-10 rounded-[40px] border border-white/5 min-w-[400px]">
-                  <Quote className="w-8 h-8 text-brand/20" />
-                  <p className="text-xl font-light italic text-white/80 whitespace-normal">
-                    "Storm Flash captured our wedding with a level of artistry we didn't think was possible. Truly world-class."
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-brand/20" />
-                    <div>
-                      <h4 className="font-bold text-sm">Rahul S.</h4>
-                      <p className="text-[10px] uppercase tracking-widest text-brand">Wedding Client</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+        {testimonials.length > 0 && (
+          <section className="py-40 border-b border-white/5 overflow-hidden">
+            <div className="max-w-7xl mx-auto px-6 mb-24">
+              <h2 className="text-4xl lg:text-6xl font-display font-bold tracking-tighter text-center">CLIENT <span className="font-serif italic font-light text-white/30">LOVE</span></h2>
             </div>
             
-            {/* Infinite Marquee 2 */}
-            <div className="flex gap-8 whitespace-nowrap animate-marquee-reverse">
-              {[1, 2, 3, 4, 5].map((_, i) => (
-                <div key={i} className="inline-flex flex-col gap-6 glass p-10 rounded-[40px] border border-white/5 min-w-[400px]">
-                  <Quote className="w-8 h-8 text-brand/20" />
-                  <p className="text-xl font-light italic text-white/80 whitespace-normal">
-                    "The portrait session was incredible. Jaswanth knows exactly how to work with light to create a mood."
-                  </p>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-brand/20" />
-                    <div>
-                      <h4 className="font-bold text-sm">Ananya K.</h4>
-                      <p className="text-[10px] uppercase tracking-widest text-brand">Fashion Model</p>
+            <div className="flex flex-col gap-12">
+              {/* Infinite Marquee 1 */}
+              <div className="flex gap-8 whitespace-nowrap animate-marquee">
+                {[...testimonials, ...testimonials].map((testimonial, i) => (
+                  <div key={i} className="inline-flex flex-col gap-6 glass p-10 rounded-[40px] border border-white/5 min-w-[400px]">
+                    <Quote className="w-8 h-8 text-brand/20" />
+                    <p className="text-xl font-light italic text-white/80 whitespace-normal">
+                      "{testimonial.content}"
+                    </p>
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center font-bold text-brand uppercase text-xs">
+                        {testimonial.author.charAt(0)}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-sm">{testimonial.author}</h4>
+                        <p className="text-[10px] uppercase tracking-widest text-brand">{testimonial.role}</p>
+                      </div>
                     </div>
                   </div>
+                ))}
+              </div>
+              
+              {/* Infinite Marquee 2 (Reversed) */}
+              {testimonials.length > 2 && (
+                <div className="flex gap-8 whitespace-nowrap animate-marquee-reverse">
+                  {[...testimonials, ...testimonials].reverse().map((testimonial, i) => (
+                    <div key={i} className="inline-flex flex-col gap-6 glass p-10 rounded-[40px] border border-white/5 min-w-[400px]">
+                      <Quote className="w-8 h-8 text-brand/20" />
+                      <p className="text-xl font-light italic text-white/80 whitespace-normal">
+                        "{testimonial.content}"
+                      </p>
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-brand/20 flex items-center justify-center font-bold text-brand uppercase text-xs">
+                          {testimonial.author.charAt(0)}
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-sm">{testimonial.author}</h4>
+                          <p className="text-[10px] uppercase tracking-widest text-brand">{testimonial.role}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
 
         {/* Contact Section */}
@@ -1194,16 +1258,16 @@ export default function App() {
                 <div className="lg:col-span-1 space-y-8">
                   <div className="glass p-8 rounded-3xl border border-white/10">
                     <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
-                      <Play className="w-5 h-5 text-brand" /> Manage Hero Reel
+                      <Instagram className="w-5 h-5 text-brand" /> Manage Hero Reel
                     </h3>
                     <form onSubmit={handleUpdateReel} className="space-y-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-bold tracking-widest uppercase text-white/40">Embed URL (YouTube/Vimeo)</label>
+                        <label className="text-[10px] font-bold tracking-widest uppercase text-white/40">Instagram Reel / YouTube URL</label>
                         <input
                           type="text"
                           value={newReelUrl}
                           onChange={(e) => setNewReelUrl(e.target.value)}
-                          placeholder="https://www.youtube.com/embed/..."
+                          placeholder="https://www.instagram.com/reel/..."
                           className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:border-brand outline-none text-sm"
                         />
                       </div>
@@ -1270,6 +1334,7 @@ export default function App() {
                       </Button>
                     </form>
                   </div>
+
 
                   <div className="glass p-8 rounded-3xl border border-white/10 sticky top-12">
                     <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
