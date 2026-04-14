@@ -1080,16 +1080,18 @@ export default function App() {
 
       <footer className="py-20 border-t border-white/5">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-12">
-          <div className="flex items-center gap-2">
-            <Zap className="w-6 h-6 text-brand fill-brand" />
-            <span className="font-display font-bold text-xl tracking-tighter">
-              Storm <span className="font-serif italic font-light">Flash</span>
-            </span>
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <div className="flex items-center gap-2">
+              <Zap className="w-6 h-6 text-brand fill-brand" />
+              <span className="font-display font-bold text-xl tracking-tighter">
+                Storm <span className="font-serif italic font-light">Flash</span>
+              </span>
+            </div>
           </div>
-          <div className="flex gap-12 text-[10px] font-bold tracking-widest uppercase text-white/20">
-            <a href="https://www.instagram.com/stormflash__/" target="_blank" rel="noopener noreferrer" className="hover:text-brand transition-colors">Instagram</a>
-            <a href="https://wa.me/917702931254" target="_blank" rel="noopener noreferrer" className="hover:text-brand transition-colors">WhatsApp</a>
-            <a href="mailto:stormflash78@gmail.com" className="hover:text-brand transition-colors">stormflash78@gmail.com</a>
+          <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 md:gap-12 text-[10px] font-bold tracking-widest uppercase text-white/20">
+            <a href="https://www.instagram.com/stormflash__/" target="_blank" rel="noopener noreferrer" className="hover:text-brand transition-colors text-center">Instagram</a>
+            <a href="https://wa.me/917702931254" target="_blank" rel="noopener noreferrer" className="hover:text-brand transition-colors text-center">WhatsApp</a>
+            <a href="mailto:stormflash78@gmail.com" className="hover:text-brand transition-colors text-center">stormflash78@gmail.com</a>
             <button 
               onClick={() => isAdmin ? setShowAdminDashboard(true) : setShowAdminLogin(true)}
               className="hover:text-brand transition-colors uppercase flex items-center gap-1"
@@ -1098,7 +1100,7 @@ export default function App() {
               <Camera className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex flex-col items-center md:items-end gap-2">
+          <div className="flex flex-col items-center md:items-end gap-2 text-center md:text-right">
             <p className="text-[10px] font-bold tracking-widest uppercase text-white/10">
               © 2026 STORM FLASH. ALL RIGHTS RESERVED.
             </p>
