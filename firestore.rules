@@ -1,0 +1,40 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: photos
+    // Fields:
+    //   - src: string (required)
+    //   - title: string (required)
+    //   - category: string (required, enum: Landscape, Street, Portrait, Action)
+    //   - size: string (required, enum: square, tall, large)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isValidPhoto(data) {
+      return data.src is string && data.src.size() > 0 && data.src.size() < 2000 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.category in ['Landscape', 'Street', 'Portrait', 'Action'] &&
+             data.size in ['square', 'tall', 'large'] &&
+             data.createdAt is timestamp;
+    }
+
+    match /photos/{photoId} {
+      allow read: if true;
+      allow create, update, delete: if true;
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if true;
+    }
+  }
+}

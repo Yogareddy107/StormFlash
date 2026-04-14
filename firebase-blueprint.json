@@ -1,0 +1,32 @@
+{
+  "entities": {
+    "Photo": {
+      "title": "Photo",
+      "description": "A photo in the gallery",
+      "type": "object",
+      "properties": {
+        "src": { "type": "string", "description": "URL of the photo" },
+        "title": { "type": "string", "description": "Title of the photo" },
+        "category": { "type": "string", "enum": ["Landscape", "Street", "Portrait", "Action"], "description": "Category of the photo" },
+        "size": { "type": "string", "enum": ["square", "tall", "large"], "description": "Display size in the grid" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "When the photo was added" }
+      },
+      "required": ["src", "title", "category", "size", "createdAt"]
+    }
+  },
+  "firestore": {
+    "photos": {
+      "schema": "Photo",
+      "description": "Collection of gallery photos"
+    },
+    "settings": {
+      "schema": {
+        "type": "object",
+        "properties": {
+          "reelUrl": { "type": "string", "description": "URL of the hero reel video" }
+        }
+      },
+      "description": "Global application settings"
+    }
+  }
+}
